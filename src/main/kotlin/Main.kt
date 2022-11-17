@@ -342,34 +342,40 @@ fun makeMatrixOperation(data: List<String>) {
 }
 
 fun makeConvolutionOfMatrices(name1: String, name2: String) {
-    val name =
-        if (name1.contains("->") && name2.contains("->"))
-            "${name1.split("->")[0]}->${name2.split("->")[1]}"
-        else if (name1.contains("->")) "($name1)o$name2"
-        else if (name2.contains("->")) "${name1}o($name2)"
-        else "($name1)o($name2)"
+    if (matrices[name1]!![matrices[name1]!!.keys.random()]!!.size != matrices[name2]!!.size)
+        errorMessage("matrix multiplication is impossible.\n" +
+                "The number of columns of matrix $name1 is not equal to the number of rows of matrix $name2:\n" +
+                "${matrices[name1]!![matrices[name1]!!.keys.random()]!!.size} != ${matrices[name2]!!.size}")
+            .also { return }
+
+    val name = "($name1)o($name2)"
 
     if (name in matrices.keys) getCommand(name).also { return }
+
+    val transposedMatrix2 = HashMap<String, HashMap<String, Double>>()
+    for (row in matrices[name2]!!.keys) {
+        for (column in matrices[name2]!![row]!!.keys) {
+            if (transposedMatrix2[column] == null) transposedMatrix2[column] = HashMap<String, Double>()
+            transposedMatrix2[column]!![row] = matrices[name2]!![row]!![column]!!
+        }
+    }
 
     val rows = HashMap<String, HashMap<String, Double>>()
     for (row in matrices[name1]!!.keys) {
         val columns = HashMap<String, Double>()
-        for (column in matrices[name2]!![matrices[name2]!!.keys.random()]!!.keys) {
+        for (column in transposedMatrix2.keys) {
             columns[column] = 0.0
         }
         rows[row] = columns
     }
 
-    for (row1 in matrices[name1]!!.keys) {
-        for (column1 in matrices[name1]!![row1]!!.keys) {
-            for (row2 in matrices[name2]!!.keys) {
-                for (column2 in matrices[name2]!![row2]!!.keys) {
-                    val value =
-                        if (matrices[name1]!![row1]!![column1]!! < matrices[name2]!![row2]!![column2]!!)
-                            matrices[name1]!![row1]!![column1]!!
-                        else matrices[name2]!![row2]!![column2]!!
-                    if (rows[row1]!![column2]!! < value) rows[row1]!![column2] = value
-                }
+    for (row in matrices[name1]!!.keys) {
+        for (column in transposedMatrix2.keys) {
+            for ((i, j) in (matrices[name1]!![row]!!.keys).zip(transposedMatrix2[column]!!.keys)) {
+                var value =
+                    if (matrices[name1]!![row]!![i]!! < transposedMatrix2[column]!![j]!!) matrices[name1]!![row]!![i]!!
+                    else transposedMatrix2[column]!![j]!!
+                if (value > rows[row]!![column]!!) rows[row]!![column] = value
             }
         }
     }
@@ -389,3 +395,4 @@ fun makeConvolutionOfMatrices(name1: String, name2: String) {
 //add H = {1/y1, 0.6/y2, 0.2/y3, 0/y4}
 //-F -> H
 //F->G o -F->H
+//F -> H
