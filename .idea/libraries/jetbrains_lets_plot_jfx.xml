@@ -1,0 +1,18 @@
+<component name="libraryTable">
+  <library name="jetbrains.lets.plot.jfx" type="repository">
+    <properties maven-id="org.jetbrains.lets-plot:lets-plot-jfx:3.0.0" />
+    <CLASSES>
+      <root url="jar://$PROJECT_DIR$/lib/lets-plot-jfx-3.0.0.jar!/" />
+      <root url="jar://$PROJECT_DIR$/lib/lets-plot-common-3.0.0.jar!/" />
+      <root url="jar://$PROJECT_DIR$/lib/kotlin-stdlib-jdk8-1.7.21.jar!/" />
+      <root url="jar://$PROJECT_DIR$/lib/kotlin-stdlib-1.7.21.jar!/" />
+      <root url="jar://$PROJECT_DIR$/lib/annotations-13.0.jar!/" />
+      <root url="jar://$PROJECT_DIR$/lib/kotlin-stdlib-jdk7-1.7.21.jar!/" />
+      <root url="jar://$PROJECT_DIR$/lib/kotlin-logging-2.0.5.jar!/" />
+      <root url="jar://$PROJECT_DIR$/lib/kotlinx-html-jvm-0.7.3.jar!/" />
+      <root url="jar://$PROJECT_DIR$/lib/kotlin-stdlib-common-1.4.31.jar!/" />
+    </CLASSES>
+    <JAVADOC />
+    <SOURCES />
+  </library>
+</component>

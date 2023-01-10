@@ -1,3 +1,8 @@
+import org.jetbrains.letsPlot.export.ggsave
+import org.jetbrains.letsPlot.geom.geomLine
+import org.jetbrains.letsPlot.letsPlot
+import org.jetbrains.letsPlot.scale.scaleXContinuous
+import org.jetbrains.letsPlot.scale.scaleYContinuous
 import java.lang.NumberFormatException
 import java.lang.StringBuilder
 import java.util.*
@@ -29,6 +34,7 @@ fun main() {
             "get" -> getCommand(command.getNext())
             "remove" -> removeCommand(command.getNext())
             "not" -> makeInversionOfSet(command.getNext())
+            "build" -> buildGraph(command.getNext())
             in sets.keys -> makeSetOperation(command.split(" "))
             in matrices.keys -> makeMatrixOperation(command.split(" "))
             else -> unknownCommandMessage(command.getCurrent())
@@ -342,34 +348,42 @@ fun makeMatrixOperation(data: List<String>) {
 }
 
 fun makeConvolutionOfMatrices(name1: String, name2: String) {
-    val name =
-        if (name1.contains("->") && name2.contains("->"))
-            "${name1.split("->")[0]}->${name2.split("->")[1]}"
-        else if (name1.contains("->")) "($name1)o$name2"
-        else if (name2.contains("->")) "${name1}o($name2)"
-        else "($name1)o($name2)"
+    if (matrices[name1]!![matrices[name1]!!.keys.random()]!!.size != matrices[name2]!!.size)
+        errorMessage(
+            "matrix multiplication is impossible.\n" +
+                    "The number of columns of matrix $name1 is not equal to the number of rows of matrix $name2:\n" +
+                    "${matrices[name1]!![matrices[name1]!!.keys.random()]!!.size} != ${matrices[name2]!!.size}"
+        )
+            .also { return }
+
+    val name = "($name1)o($name2)"
 
     if (name in matrices.keys) getCommand(name).also { return }
+
+    val transposedMatrix2 = HashMap<String, HashMap<String, Double>>()
+    for (row in matrices[name2]!!.keys) {
+        for (column in matrices[name2]!![row]!!.keys) {
+            if (transposedMatrix2[column] == null) transposedMatrix2[column] = HashMap<String, Double>()
+            transposedMatrix2[column]!![row] = matrices[name2]!![row]!![column]!!
+        }
+    }
 
     val rows = HashMap<String, HashMap<String, Double>>()
     for (row in matrices[name1]!!.keys) {
         val columns = HashMap<String, Double>()
-        for (column in matrices[name2]!![matrices[name2]!!.keys.random()]!!.keys) {
+        for (column in transposedMatrix2.keys) {
             columns[column] = 0.0
         }
         rows[row] = columns
     }
 
-    for (row1 in matrices[name1]!!.keys) {
-        for (column1 in matrices[name1]!![row1]!!.keys) {
-            for (row2 in matrices[name2]!!.keys) {
-                for (column2 in matrices[name2]!![row2]!!.keys) {
-                    val value =
-                        if (matrices[name1]!![row1]!![column1]!! < matrices[name2]!![row2]!![column2]!!)
-                            matrices[name1]!![row1]!![column1]!!
-                        else matrices[name2]!![row2]!![column2]!!
-                    if (rows[row1]!![column2]!! < value) rows[row1]!![column2] = value
-                }
+    for (row in matrices[name1]!!.keys) {
+        for (column in transposedMatrix2.keys) {
+            for ((i, j) in (matrices[name1]!![row]!!.keys).zip(transposedMatrix2[column]!!.keys)) {
+                var value =
+                    if (matrices[name1]!![row]!![i]!! < transposedMatrix2[column]!![j]!!) matrices[name1]!![row]!![i]!!
+                    else transposedMatrix2[column]!![j]!!
+                if (value > rows[row]!![column]!!) rows[row]!![column] = value
             }
         }
     }
@@ -378,14 +392,67 @@ fun makeConvolutionOfMatrices(name1: String, name2: String) {
 
     getCommand(name)
 }
-//add big = {0.6/h170, 0.7/h180, 0.8/h190, 0.9/h200, 1/h210}
-//add medium = {0.8/h150, 0.9/h160, 1/h170, 0.9/h180, 0.8/h190}
-//add U = {1/x1, 0.8/x2, 0.6/x3, 0.2/x4}
-//add V = {0.1188888/y1, 0.5/y2, 0.8/y3, 1/y4}
-//add F = {0.9/x1, 0.6/x2, 0/x3, 1/x4}
-//add G = {0.5/y1, 0.3/y2, 0.9/y3, 1/y4}
-//F -> G
-//not F
-//add H = {1/y1, 0.6/y2, 0.2/y3, 0/y4}
-//-F -> H
-//F->G o -F->H
+
+fun buildGraph(name: String) {
+    if (name !in matrices.keys) errorMessage("unknown matrix \"$name\"").also { return }
+
+    //переписывание данных в нужный формат
+    val data = mutableMapOf<String, MutableList<Double>>()
+    val xValue = mutableListOf<Int>()
+    val yValue = mutableListOf<Double>()
+    val xNames = mutableListOf<String>()
+    val yNames = mutableListOf<String>()
+
+    for ((index, key) in matrices[name]!![matrices[name]!!.keys.random()]!!.keys.withIndex()) {
+        xValue.add(index)
+        xNames.add(key)
+    }
+
+    //добавление построения таблицы
+    var p = letsPlot(data) { x = xValue }
+
+    for ((index, row) in matrices[name]!!.keys.withIndex()) {
+        data["y$index"] = mutableListOf()
+
+        for (column in matrices[name]!![row]!!.keys)
+            data["y$index"]!!.add(matrices[name]!![row]!![column]!!)
+
+        val key = matrices[name]!![row]!!.keys.first()
+        if (matrices[name]!![row]!![key]!! in yValue)
+            yNames[yValue.indexOf(matrices[name]!![row]!![key]!!)] += ", $row"
+        else {
+            yNames.add(row)
+            yValue.add(matrices[name]!![row]!![key]!!)
+        }
+
+        //TODO можно добавить цвета color = "#******"
+        p += geomLine(alpha = 0.4, size = 2) { y = "y$index" }
+    }
+
+    for (i in 0..10)
+        if ((i.toDouble() / 10) !in yValue) {
+            yNames.add((i.toDouble() / 10).toString())
+            yValue.add(i.toDouble() / 10)
+        }
+
+    p += scaleXContinuous("", breaks = xValue, labels = xNames)
+    p += scaleYContinuous("", breaks = yValue, labels = yNames)
+
+    ggsave(p, buildString {
+        for (symbol in name) if (symbol in 'a'..'z' || symbol == '_' || symbol == '-') append(symbol)
+        append(".jpeg")
+    })
+}
+
+//комманды
+//add Food = {0/f1, 0.33/f2, 0.67/f3, 1/f4, 0.84/f5, 0.68/f6, 0.52/f7}
+//add Water = {0/w1, 1/w2, 0.6/w3}
+//add Balance = {0/b1, 0.25/b2, 0.5/b3, 0.75/b4, 1/b5}
+//Food -> Balance
+//build Food->Balance
+//not Water
+//not Balance
+//-Water -> Balance
+//-Balance -> Water
+//-Water->Balance o -Balance->Water
+//build (-water->balance)o(-balance->water)
