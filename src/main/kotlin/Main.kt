@@ -443,16 +443,3 @@ fun buildGraph(name: String) {
         append(".jpeg")
     })
 }
-
-//комманды
-//add Food = {0/f1, 0.33/f2, 0.67/f3, 1/f4, 0.84/f5, 0.68/f6, 0.52/f7}
-//add Water = {0/w1, 1/w2, 0.6/w3}
-//add Balance = {0/b1, 0.25/b2, 0.5/b3, 0.75/b4, 1/b5}
-//Food -> Balance
-//build Food->Balance
-//not Water
-//not Balance
-//-Water -> Balance
-//-Balance -> Water
-//-Water->Balance o -Balance->Water
-//build (-water->balance)o(-balance->water)
